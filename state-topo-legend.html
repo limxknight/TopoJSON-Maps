@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+
+  <head>
+      <meta charset="utf-8">
+      <title>D3:topology with legend</title>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/1.6.19/topojson.min.js"></script>
+      <script src="d3-legend/d3-legend.js"></script>
+      <script src="colorbrewer/colorbrewer.js"></script>
+    <!-- <script src="topojson/topojson.js"></script> -->
+      <style type="text/css">
+
+      .state {
+        fill: #ccc;
+      }
+
+      .state-boundary {
+        fill: none;
+        stroke: #fff;
+      }
+
+      .state.selected1 {
+        fill: orange;
+        stroke: #000;
+        fill-opacity: 0.5;
+        stroke-opacity:0.2;
+      }
+
+      .state.selected2 {
+        fill: green;
+        stroke: #000;
+        fill-opacity: 0.5;
+        stroke-opacity:0.2;
+      }
+
+      </style>
+  </head>
+<body>
+
+    <script type="text/javascript">
+
+    var width = 1500;
+    var height = 1000;
+
+    var projection = d3.geo.albersUsa()
+        .scale(width)
+        .translate([width / 2, height / 2]);
+
+    var path = d3.geo.path()
+        .projection(projection);
+
+    var svg = d3.select("body")
+                .append("svg")
+                .attr("width", width)
+                .attr("height", height);
+
+    // build a set from array
+    var selected1 = d3.set([
+                            "NJ", "MA" , "NY", "PA"
+                        ]);
+
+    var selected2 = d3.set([
+                            "CA", "WA" , "NV", "AZ"
+                        ]);
+
+        // console.log(selected)
+
+    d3.json("state.json", function(error, us) {
+      if (error) throw error;
+
+      svg.append("path")
+          .datum(topojson.feature(us, us.objects.state))
+          .attr("class", "state")
+          .attr("d", path);
+
+      // var states=topojson.feature(us, us.objects.state);
+      // console.log(states);
+
+      //important: return to outside of features
+      svg.selectAll("text")
+        .data(topojson.feature(us, us.objects.state).features)
+        .enter()
+        .append("text")
+        .text(function(d) { 
+
+          return d.properties.STUSPS; 
+        })
+        .attr("x", function(d) { 
+
+            if (d.properties.STUSPS=="MD")
+                          {
+                          return path.centroid(d)[0]+10; 
+                          }
+                        else
+                          {
+                          return path.centroid(d)[0];
+                          }
+
+        })
+        .attr("y", function(d) { return path.centroid(d)[1]; })
+        // start middle end
+        .attr("text-anchor", "start")    
+        .attr('font-size','8pt');
+
+      svg.append("path")
+          .datum(topojson.mesh(us, us.objects.state, function(a, b) { return a !== b; }))
+          .attr("class", "state-boundary")
+          .attr("d", path);
+
+      var section1 = svg.append("path")
+          // return true if matched any id
+          .datum(topojson.merge(us, us.objects.state.geometries.filter(function(d) { return selected1.has(d.properties.STUSPS); })))
+          .attr("class", "state selected1")
+          .attr("d", path);
+
+      // // add text on section 1
+      // // console.log(section1)
+      //   svg
+      //           .append("text")
+      //           .text("Finance")
+      //           .attr("x", width)
+      //           .attr("y", height);
+      //   // // start middle end
+      //   // .attr("text-anchor", "start")    
+      //   // .attr('font-size','10pt');
+
+      svg.append("path")
+          // return true if matched any id
+          .datum(topojson.merge(us, us.objects.state.geometries.filter(function(d) { return selected2.has(d.properties.STUSPS); })))
+          .attr("class", "state selected2")
+          .attr("d", path);
+    });
+
+    var area = d3.scale.quantile()
+        .domain(["orange", "green"])
+        .range(["#ffbb78", "#74c476"]);
+
+    svg.append("g")
+    .attr("class", "legendHorizontal")
+    .attr("transform", "translate(300, 80)");
+
+    var legendHorizontal = d3.legend.color()
+              .shapeWidth(80)
+              .shapeHeight(20)
+              .shape("circle")
+              .shapeRadius(20)
+              .shapePadding(30)
+              .labels(["Finance", "IT"])
+              .orient('horizontal')
+              .scale(area);
+
+    svg.select(".legendHorizontal")
+    .call(legendHorizontal);
+
+</script>
+
+  </body>
+</html>
